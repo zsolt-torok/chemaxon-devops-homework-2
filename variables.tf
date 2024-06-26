@@ -4,22 +4,25 @@ variable "context" {
   EOT
   type        = any
   default = {
-    enabled             = true
-    namespace           = null
-    environment         = null
-    stage               = null
-    name                = null
-    delimiter           = null
-    attributes          = []
-    tags                = {}
+    enabled     = true
+    namespace   = "chemaxon-hw-2"
+    environment = "dev"
+    stage       = "test"
+    name        = "backup-bucket"
+    delimiter   = "-"
+    attributes  = []
+    tags = {
+      Terraform   = "true"
+      Environment = "development"
+    }
     additional_tag_map  = {}
-    regex_replace_chars = null
-    label_order         = []
-    id_length_limit     = null
-    label_key_case      = null
-    label_value_case    = null
+    regex_replace_chars = "/"
+    label_order         = ["namespace", "environment", "name"]
+    id_length_limit     = 32
+    label_key_case      = "lower"
+    label_value_case    = "lower"
     descriptor_formats  = {}
-    labels_as_tags      = ["unset"]
+    labels_as_tags      = ["name"]
   }
 
   validation {
@@ -66,9 +69,9 @@ variable "object_lock_configuration" {
     days    = number
   })
   default = {
-    enabled = false
-    mode    = null
-    days    = null
+    enabled = true
+    mode    = "GOVERNANCE"
+    days    = 180
   }
   validation {
     condition     = var.object_lock_configuration.days != null || !var.object_lock_configuration.enabled
@@ -91,10 +94,10 @@ variable "lifecycle_configuration" {
     storage_class   = string
   })
   default = {
-    status          = null
-    expiration_days = null
-    transition_days = null
-    storage_class   = null
+    status          = "Enabled"
+    expiration_days = 180
+    transition_days = 0
+    storage_class   = "STANDARD_IA"
   }
   validation {
     condition     = contains(["Enabled", "Disabled"], var.lifecycle_configuration.status)
