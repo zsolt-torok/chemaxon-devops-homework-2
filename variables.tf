@@ -4,25 +4,22 @@ variable "context" {
   EOT
   type        = any
   default = {
-    enabled     = true
-    namespace   = "chemaxon-hw-2"
-    environment = "dev"
-    stage       = "test"
-    name        = "backup-bucket"
-    delimiter   = "-"
-    attributes  = []
-    tags = {
-      Terraform   = "true"
-      Environment = "development"
-    }
+    enabled             = true
+    namespace           = null
+    environment         = null
+    stage               = null
+    name                = null
+    delimiter           = null
+    attributes          = []
+    tags                = {}
     additional_tag_map  = {}
-    regex_replace_chars = "/"
-    label_order         = ["namespace", "environment", "name"]
-    id_length_limit     = 32
-    label_key_case      = "lower"
-    label_value_case    = "lower"
+    regex_replace_chars = null
+    label_order         = []
+    id_length_limit     = null
+    label_key_case      = null
+    label_value_case    = null
     descriptor_formats  = {}
-    labels_as_tags      = ["name"]
+    labels_as_tags      = ["unset"]
   }
 
   validation {
@@ -69,9 +66,9 @@ variable "object_lock_configuration" {
     days    = number
   })
   default = {
-    enabled = true
-    mode    = "GOVERNANCE"
-    days    = 180
+    enabled = false
+    mode    = null
+    days    = null
   }
   validation {
     condition     = var.object_lock_configuration.days != null || !var.object_lock_configuration.enabled
@@ -87,32 +84,50 @@ variable "object_lock_configuration" {
 
 variable "lifecycle_configuration" {
   description = "Lifecycle configuration settings"
-  type = object({
+  type = map(object({
+    id              = string
     status          = string
+    prefix          = string
     expiration_days = number
     transition_days = number
     storage_class   = string
-  })
+  }))
   default = {
-    status          = "Enabled"
-    expiration_days = 180
-    transition_days = 0
-    storage_class   = "STANDARD_IA"
+    default = {
+      id              = null
+      status          = null
+      prefix          = null
+      expiration_days = null
+      transition_days = null
+      storage_class   = null
+    }
   }
   validation {
-    condition     = contains(["Enabled", "Disabled"], var.lifecycle_configuration.status)
-    error_message = "Status must be either 'Enabled' or 'Disabled'."
+    condition = alltrue([
+      for _, config in var.lifecycle_configuration :
+      contains(["Enabled", "Disabled"], config.status)
+    ])
+    error_message = "Each status must be either 'Enabled' or 'Disabled'."
   }
   validation {
-    condition     = contains(["STANDARD_IA", "GLACIER_IR"], var.lifecycle_configuration.storage_class)
-    error_message = "Storage class must be either 'STANDARD_IA' or 'GLACIER_IR'."
+    condition = alltrue([
+      for _, config in var.lifecycle_configuration :
+      contains(["STANDARD_IA", "GLACIER_IR", "GLACIER", "ONEZONE_IA", "INTELLIGENT_TIERING", "DEEP_ARCHIVE", "GLACIER_IR"], config.storage_class)
+    ])
+    error_message = "Each lifecycle configuration storage class must be one of 'STANDARD_IA', 'GLACIER_IR', 'GLACIER', 'ONEZONE_IA', 'INTELLIGENT_TIERING', or 'DEEP_ARCHIVE'."
   }
   validation {
-    condition     = var.lifecycle_configuration.expiration_days > 0
-    error_message = "Expiration days must be a positive integer."
+    condition = alltrue([
+      for _, config in var.lifecycle_configuration :
+      config.expiration_days > 0
+    ])
+    error_message = "Each expiration_days must be a positive integer."
   }
   validation {
-    condition     = var.lifecycle_configuration.transition_days == 0
-    error_message = "Transition days can only be 0."
+    condition = alltrue([
+      for _, config in var.lifecycle_configuration :
+      config.transition_days >= 0
+    ])
+    error_message = "Each lifecycle configuration transition_days must be zero or a positive integer."
   }
 }

@@ -1,3 +1,7 @@
+#################################
+#       backup-s3-bucket        #
+#################################
+
 data "aws_iam_policy_document" "s3_backup_kms_policy" {
   statement {
     effect = "Allow"
@@ -26,8 +30,8 @@ data "aws_iam_policy_document" "s3_backup_upload_policy" {
     ]
 
     resources = [
-      "${aws_s3_bucket.content.arn}",
-      "${aws_s3_bucket.content.arn}/*"
+      "${aws_s3_bucket.backup.arn}",
+      "${aws_s3_bucket.backup.arn}/*"
     ]
 
     principals {
@@ -40,7 +44,7 @@ data "aws_iam_policy_document" "s3_backup_upload_policy" {
     sid       = "RequireObjectEncryption"
     effect    = "Deny"
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.content.arn}/*"]
+    resources = ["${aws_s3_bucket.backup.arn}/*"]
 
     principals {
       type        = "AWS"
@@ -61,7 +65,37 @@ data "aws_iam_policy_document" "s3_backup_upload_policy" {
   }
 }
 
-resource "aws_s3_bucket_policy" "this" {
-  bucket = aws_s3_bucket.content.id
+resource "aws_s3_bucket_policy" "s3_backup_upload_policy" {
+  bucket = aws_s3_bucket.backup.id
   policy = data.aws_iam_policy_document.s3_backup_upload_policy.json
+}
+
+#################################
+#        log-s3-bucket          #
+#################################
+
+data "aws_iam_policy_document" "s3_log_policy" {
+
+  statement {
+    actions = ["s3:*"]
+    effect  = "Deny"
+    resources = [
+      "${aws_s3_bucket.log.arn}",
+      "${aws_s3_bucket.log.arn}/*"
+    ]
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "s3_log_policy" {
+  bucket = aws_s3_bucket.log.id
+  policy = data.aws_iam_policy_document.s3_log_policy.json
 }
