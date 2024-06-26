@@ -65,6 +65,40 @@ Terraform will perform the following actions:
         }
     }
 
+  # data.aws_iam_policy_document.s3_log_policy will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "s3_log_policy" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "s3:*",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + (known after apply),
+              + (known after apply),
+            ]
+
+          + condition {
+              + test     = "Bool"
+              + values   = [
+                  + "false",
+                ]
+              + variable = "aws:SecureTransport"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "*"
+            }
+        }
+    }
+
   # aws_kms_alias.this will be created
   + resource "aws_kms_alias" "this" {
       + arn            = (known after apply)
@@ -120,8 +154,8 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket.content will be created
-  + resource "aws_s3_bucket" "content" {
+  # aws_s3_bucket.backup will be created
+  + resource "aws_s3_bucket" "backup" {
       + acceleration_status         = (known after apply)
       + acl                         = (known after apply)
       + arn                         = (known after apply)
@@ -150,20 +184,57 @@ Terraform will perform the following actions:
       + website_endpoint            = (known after apply)
     }
 
-  # aws_s3_bucket_acl.this will be created
-  + resource "aws_s3_bucket_acl" "this" {
+  # aws_s3_bucket.log will be created
+  + resource "aws_s3_bucket" "log" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "log-bucket"
+      + bucket_domain_name          = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = (known after apply)
+      + request_payer               = (known after apply)
+      + tags                        = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-log-bucket"
+        }
+      + tags_all                    = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-log-bucket"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+    }
+
+  # aws_s3_bucket_acl.backup will be created
+  + resource "aws_s3_bucket_acl" "backup" {
       + acl    = "private"
       + bucket = (known after apply)
       + id     = (known after apply)
     }
 
-  # aws_s3_bucket_lifecycle_configuration.this will be created
-  + resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  # aws_s3_bucket_acl.log will be created
+  + resource "aws_s3_bucket_acl" "log" {
+      + acl    = "log-delivery-write"
+      + bucket = (known after apply)
+      + id     = (known after apply)
+    }
+
+  # aws_s3_bucket_lifecycle_configuration.backup will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "backup" {
       + bucket = (known after apply)
       + id     = (known after apply)
 
       + rule {
-          + id     = "backup_clean"
+          + id     = "backup-clean"
           + status = "Enabled"
 
           + expiration {
@@ -191,8 +262,41 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_object_lock_configuration.this[0] will be created
-  + resource "aws_s3_bucket_object_lock_configuration" "this" {
+  # aws_s3_bucket_lifecycle_configuration.log will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "log" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + id     = "auto-archive"
+          + status = "Enabled"
+
+          + expiration {
+              + days                         = 180
+              + expired_object_delete_marker = (known after apply)
+            }
+
+          + filter {
+              + prefix = "log/"
+            }
+
+          + transition {
+              + days          = 90
+              + storage_class = "GLACIER"
+            }
+        }
+    }
+
+  # aws_s3_bucket_logging.backup will be created
+  + resource "aws_s3_bucket_logging" "backup" {
+      + bucket        = (known after apply)
+      + id            = (known after apply)
+      + target_bucket = (known after apply)
+      + target_prefix = "log/"
+    }
+
+  # aws_s3_bucket_object_lock_configuration.backup[0] will be created
+  + resource "aws_s3_bucket_object_lock_configuration" "backup" {
       + bucket              = (known after apply)
       + id                  = (known after apply)
       + object_lock_enabled = "Enabled"
@@ -205,8 +309,8 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_ownership_controls.this will be created
-  + resource "aws_s3_bucket_ownership_controls" "this" {
+  # aws_s3_bucket_ownership_controls.backup will be created
+  + resource "aws_s3_bucket_ownership_controls" "backup" {
       + bucket = (known after apply)
       + id     = (known after apply)
 
@@ -215,15 +319,22 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_policy.this will be created
-  + resource "aws_s3_bucket_policy" "this" {
+  # aws_s3_bucket_policy.s3_backup_upload_policy will be created
+  + resource "aws_s3_bucket_policy" "s3_backup_upload_policy" {
       + bucket = (known after apply)
       + id     = (known after apply)
       + policy = (known after apply)
     }
 
-  # aws_s3_bucket_public_access_block.this will be created
-  + resource "aws_s3_bucket_public_access_block" "this" {
+  # aws_s3_bucket_policy.s3_log_policy will be created
+  + resource "aws_s3_bucket_policy" "s3_log_policy" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+    }
+
+  # aws_s3_bucket_public_access_block.backup will be created
+  + resource "aws_s3_bucket_public_access_block" "backup" {
       + block_public_acls       = true
       + block_public_policy     = true
       + bucket                  = (known after apply)
@@ -232,8 +343,18 @@ Terraform will perform the following actions:
       + restrict_public_buckets = true
     }
 
-  # aws_s3_bucket_server_side_encryption_configuration.this will be created
-  + resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  # aws_s3_bucket_public_access_block.log will be created
+  + resource "aws_s3_bucket_public_access_block" "log" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.backup will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "backup" {
       + bucket = (known after apply)
       + id     = (known after apply)
 
@@ -245,8 +366,20 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_versioning.this will be created
-  + resource "aws_s3_bucket_versioning" "this" {
+  # aws_s3_bucket_server_side_encryption_configuration.log will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "log" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + apply_server_side_encryption_by_default {
+              + sse_algorithm = "AES256"
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.backup will be created
+  + resource "aws_s3_bucket_versioning" "backup" {
       + bucket = (known after apply)
       + id     = (known after apply)
 
@@ -256,11 +389,14 @@ Terraform will perform the following actions:
         }
     }
 
-Plan: 11 to add, 0 to change, 0 to destroy.
+Plan: 18 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + bucket_arn    = (known after apply)
-  + bucket_name   = "backup-bucket"
-  + bucket_region = (known after apply)
-  + kms_key_arn   = (known after apply)
-  + kms_key_id    = (known after apply)
+  + backup_bucket_arn    = (known after apply)
+  + backup_bucket_name   = "backup-bucket"
+  + backup_bucket_region = (known after apply)
+  + kms_key_arn          = (known after apply)
+  + kms_key_id           = (known after apply)
+  + log_bucket_arn       = (known after apply)
+  + log_bucket_name      = "log-bucket"
+  + log_bucket_region    = (known after apply)
