@@ -91,10 +91,10 @@ variable "lifecycle_configuration" {
     storage_class   = string
   })
   default = {
-    status          = "Enabled"
-    expiration_days = 180
-    transition_days = 0
-    storage_class   = "STANDARD_IA"
+    status          = null
+    expiration_days = null
+    transition_days = null
+    storage_class   = null
   }
   validation {
     condition     = contains(["Enabled", "Disabled"], var.lifecycle_configuration.status)

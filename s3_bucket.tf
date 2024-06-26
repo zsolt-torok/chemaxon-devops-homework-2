@@ -3,14 +3,6 @@ resource "aws_s3_bucket" "content" {
   force_destroy = var.force_destroy
 
   tags = module.label_bucket.tags
-
-  # Uncomment and configure as needed
-  # logging {
-  #   target_bucket = aws_s3_bucket.access_log.id
-  # }
-  # depends_on = [
-  #   aws_s3_bucket_public_access_block.access_log
-  # ]
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
@@ -19,6 +11,15 @@ resource "aws_s3_bucket_ownership_controls" "this" {
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
+}
+
+resource "aws_s3_bucket_acl" "this" {
+  bucket = aws_s3_bucket.content.id
+  acl    = "private"
+
+  depends_on = [
+    aws_s3_bucket_ownership_controls.this
+  ]
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
@@ -36,15 +37,6 @@ resource "aws_s3_bucket_versioning" "this" {
   versioning_configuration {
     status = "Enabled"
   }
-}
-
-resource "aws_s3_bucket_acl" "this" {
-  bucket = aws_s3_bucket.content.id
-  acl    = "private"
-
-  depends_on = [
-    aws_s3_bucket_ownership_controls.this
-  ]
 }
 
 resource "aws_s3_bucket_object_lock_configuration" "this" {
