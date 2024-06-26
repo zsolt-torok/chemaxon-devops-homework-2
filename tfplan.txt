@@ -1,0 +1,266 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.aws_iam_policy_document.s3_backup_upload_policy will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "s3_backup_upload_policy" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "s3:ListBucket",
+              + "s3:PutObject",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + (known after apply),
+              + (known after apply),
+            ]
+
+          + principals {
+              + identifiers = [
+                  + "arn:aws:iam::123456789012:role/backup_uploader",
+                ]
+              + type        = "AWS"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:PutObject",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "RequireObjectEncryption"
+
+          + condition {
+              + test     = "Null"
+              + values   = [
+                  + "true",
+                ]
+              + variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
+            }
+          + condition {
+              + test     = "StringNotEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "AWS"
+            }
+        }
+    }
+
+  # aws_kms_alias.this will be created
+  + resource "aws_kms_alias" "this" {
+      + arn            = (known after apply)
+      + id             = (known after apply)
+      + name           = "alias/s3-backup-key"
+      + name_prefix    = (known after apply)
+      + target_key_arn = (known after apply)
+      + target_key_id  = (known after apply)
+    }
+
+  # aws_kms_key.this will be created
+  + resource "aws_kms_key" "this" {
+      + arn                                = (known after apply)
+      + bypass_policy_lockout_safety_check = false
+      + customer_master_key_spec           = "SYMMETRIC_DEFAULT"
+      + description                        = "KMS key for S3 backup bucket encryption"
+      + enable_key_rotation                = false
+      + id                                 = (known after apply)
+      + is_enabled                         = true
+      + key_id                             = (known after apply)
+      + key_usage                          = "ENCRYPT_DECRYPT"
+      + multi_region                       = (known after apply)
+      + policy                             = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = [
+                          + "kms:GenerateDataKey",
+                          + "kms:Encrypt",
+                          + "kms:DescribeKey",
+                          + "kms:Decrypt",
+                        ]
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + AWS = "arn:aws:iam::123456789012:role/backup_uploader"
+                        }
+                      + Resource  = "*"
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + rotation_period_in_days            = (known after apply)
+      + tags                               = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-backup-kms"
+        }
+      + tags_all                           = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-backup-kms"
+        }
+    }
+
+  # aws_s3_bucket.content will be created
+  + resource "aws_s3_bucket" "content" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "backup-bucket"
+      + bucket_domain_name          = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = (known after apply)
+      + request_payer               = (known after apply)
+      + tags                        = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-backup-bucket"
+        }
+      + tags_all                    = {
+          + "Environment" = "development"
+          + "Terraform"   = "true"
+          + "name"        = "chemaxon-hw-2-dev-backup-bucket"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+    }
+
+  # aws_s3_bucket_acl.this will be created
+  + resource "aws_s3_bucket_acl" "this" {
+      + acl    = "private"
+      + bucket = (known after apply)
+      + id     = (known after apply)
+    }
+
+  # aws_s3_bucket_lifecycle_configuration.this will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "this" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + id     = "backup_clean"
+          + status = "Enabled"
+
+          + expiration {
+              + days                         = 180
+              + expired_object_delete_marker = (known after apply)
+            }
+
+          + filter {
+              + prefix = "/"
+            }
+
+          + noncurrent_version_expiration {
+              + noncurrent_days = 180
+            }
+
+          + noncurrent_version_transition {
+              + noncurrent_days = 0
+              + storage_class   = "STANDARD_IA"
+            }
+
+          + transition {
+              + days          = 0
+              + storage_class = "STANDARD_IA"
+            }
+        }
+    }
+
+  # aws_s3_bucket_object_lock_configuration.this[0] will be created
+  + resource "aws_s3_bucket_object_lock_configuration" "this" {
+      + bucket              = (known after apply)
+      + id                  = (known after apply)
+      + object_lock_enabled = "Enabled"
+
+      + rule {
+          + default_retention {
+              + days = 180
+              + mode = "GOVERNANCE"
+            }
+        }
+    }
+
+  # aws_s3_bucket_ownership_controls.this will be created
+  + resource "aws_s3_bucket_ownership_controls" "this" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + object_ownership = "BucketOwnerEnforced"
+        }
+    }
+
+  # aws_s3_bucket_policy.this will be created
+  + resource "aws_s3_bucket_policy" "this" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+    }
+
+  # aws_s3_bucket_public_access_block.this will be created
+  + resource "aws_s3_bucket_public_access_block" "this" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.this will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "aws:kms"
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.this will be created
+  + resource "aws_s3_bucket_versioning" "this" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+Plan: 11 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + bucket_arn    = (known after apply)
+  + bucket_name   = "backup-bucket"
+  + bucket_region = (known after apply)
+  + kms_key_arn   = (known after apply)
+  + kms_key_id    = (known after apply)
